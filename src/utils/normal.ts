@@ -19,6 +19,22 @@ export const constructNormal = (array: number[]): Normal => {
 }
 
 /**
+ * Constructs a normal from an array where each element has a specific weight (they needn't sum one)
+ */
+export const constructWeightedNormal = (array: number[], weights: number[]): Normal =>{
+    if (array.length != weights.length){throw new Error("Array length and weights lenght should be equal when constructing normal");}
+    
+    const totalWeight = weights.reduce((acc, val) => acc + val, 0.0);
+    const avgWeight = totalWeight / weights.length;
+    const mean = array.reduce((acc, val, index) => { return acc + (val * weights[index] / totalWeight);}, 0.0);
+
+    const diffsSquared = array.reduce((acc: number[], val, index) => acc.concat(((val - mean) ** 2) * weights[index] / avgWeight), []);
+    const std = Math.sqrt(diffsSquared.reduce((acc, val) => acc + val, 0.0) / array.length);
+
+    return {mean: mean, std: std};
+}
+
+/**
  * Inplace changes the std of the normal
  * @param normal 
  * @param deviation 
@@ -26,6 +42,8 @@ export const constructNormal = (array: number[]): Normal => {
 export const addDeviation = (normal: Normal, deviation: number) : void =>{
     normal.std = Math.sqrt(normal.std ** 2 + deviation ** 2);
 }
+
+
 
 /**
  * Computes the probability of a random normal being smaller than value

@@ -28,8 +28,8 @@ const poll2: Poll = {
     pollster: POLLSTERS.get("Fox News")!,
     date: new Date(),
     generalResult: {
-        dem: .51,
-        rep: .47,
+        dem: .495,
+        rep: .485,
         other: .03,
     }
 }
@@ -42,4 +42,5 @@ const presidentialRace: PresidentialRace = {
     contests: loadPresidentialContests(),
 }
 
+//predictPresidentialRace(presidentialRace);
 console.log(predictPresidentialRace(presidentialRace));
