@@ -4,18 +4,19 @@
 import { Contest } from "./contests/contest";
 import { PresidentialRace, loadPresidentialContests, predictPresidentialRace } from "./contests/presidentialRace";
 import { Poll } from "./polling/poll";
-import { Pollster } from "./pollster/pollster";
+import { loadPollsters } from "./pollster/pollster";
 
-const POLLSTERS: Map<string, Pollster> = new Map();
-POLLSTERS.set("You Gov", {name: "You Gov"});
-POLLSTERS.set("Fox News", {name: "Fox News"});
+const POLLSTERS = loadPollsters();
 
+for (const [pollsterName, pollster] of POLLSTERS.entries()){
+    console.log("Pollster " + pollsterName + " bias: " + pollster.pastBias);
+}
 
 const popularVote: Contest = {name: "PP", environment: {mean: 0, std: 0}, predictedEnvironment: null, polls: []};
 
 
 const poll1: Poll = {
-    pollster: POLLSTERS.get("You Gov")!,
+    pollster: POLLSTERS.get("YouGov")!,
     date: new Date(),
     generalResult: {
         dem: .485,

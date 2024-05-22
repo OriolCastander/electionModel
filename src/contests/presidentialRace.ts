@@ -8,6 +8,7 @@ import { Normal, constructNormal, constructWeightedNormal, randomNormal } from "
 import { STATES } from "../utils/utils";
 import { Contest, ContestPredictionConfig, predictContest } from "./contest";
 import { Result } from '../utils/results';
+import { PollsterPredictionConfig } from '../pollster/pollster';
 
 
 export type PresidentialContestsName = STATES | "Maine 1st" | "Maine 2nd" | "Nebraska 1st" | "Nebraska 2nd" | "Nebraska 3rd" |
@@ -158,6 +159,15 @@ const loadPastHouseStatewideData = (): Map<PresidentialContestsName, Map<number,
 
 export interface PresidentialRacePredictionConfig {
 
+    environmentsConfig?: PresidentialRacePredictionEnvironmentsConfig;
+
+    pollstersConfig?: PollsterPredictionConfig;
+}
+
+/**
+ * Deals with configs when determining each state environment (difference from the popular vote)
+ */
+interface PresidentialRacePredictionEnvironmentsConfig{
     /** In calculating the environment of a state, how much we take into account that year's popular vote.
      * I.e. if colorado is dem +8 but the popular vote was dem +2, should colorado be D+8 or D+6?
      */
@@ -166,7 +176,6 @@ export interface PresidentialRacePredictionConfig {
     recencyFactor: number;
 
     houseToPresidentialRatio: number;
-
 }
 
 
@@ -190,8 +199,14 @@ export interface PresidentialRacePredictionOutput {
  */
 export const predictPresidentialRace = (presidentialRace: PresidentialRace, config: PresidentialRacePredictionConfig | null=null): PresidentialRacePredictionOutput =>{
 
-    if (config == null){
-        config = {popularVoteFactor: .7, recencyFactor: .3, houseToPresidentialRatio: .3};
+    if (config == null){config = {};}
+
+    if (!config.environmentsConfig){
+        config.environmentsConfig = {popularVoteFactor: .7, recencyFactor: .3, houseToPresidentialRatio: .3};
+    }
+
+    if (!config.pollstersConfig){
+        config.pollstersConfig = {pastBiasFactor: .5};
     }
 
 
@@ -209,10 +224,10 @@ export const predictPresidentialRace = (presidentialRace: PresidentialRace, conf
 
         var secenarioFavorability = randomNormal({mean:0.0, std: 1.0});
 
-        var popularVoteResult = predictContest(presidentialRace.popularVote, {normalShift: secenarioFavorability});
+        var popularVoteResult = predictContest(presidentialRace.popularVote, {pollstersConfig: config.pollstersConfig!, normalShift: secenarioFavorability});
 
         var demElectors = 0;
-        const config: ContestPredictionConfig = {
+        const predictionConfig: ContestPredictionConfig = {
             environment: {
                 environmentPercentage: .5,
                 result: popularVoteResult,
@@ -224,7 +239,7 @@ export const predictPresidentialRace = (presidentialRace: PresidentialRace, conf
             var contestShift = randomNormal({mean:0.0, std:1.0}) * randomNormal(contest.environment!);
             var contestFavorability = secenarioFavorability + contestShift;
 
-            var constestResult = predictContest(contest, {...config, normalShift: contestFavorability});
+            var constestResult = predictContest(contest, {...predictionConfig, normalShift: contestFavorability});
             if (constestResult > 0){demElectors += contest.electors;}
             statesMargins.get(contest.name)?.push(constestResult);
         }
@@ -297,7 +312,7 @@ const setStatesEnvironment = (presidentialRace: PresidentialRace, config: Presid
             //1 IS MOST RECENT, 0 IS MOST OLD
             const oldFactor =  1 - ((cutoff - year) / (cutoff - 2016));
 
-            return oldFactor * (1 - config.recencyFactor) + config.recencyFactor;
+            return oldFactor * (1 - config.environmentsConfig!.recencyFactor) + config.environmentsConfig!.recencyFactor;
         }
 
         //ENVIRONMENT (WEIGHTED MEAN OF PAST RESULTS)
@@ -310,7 +325,7 @@ const setStatesEnvironment = (presidentialRace: PresidentialRace, config: Presid
 
             const margin = (res.dem - res.rep) / totalVotes;
             const shifedMargin = margin - presidentialPopularVoteMargins.get(year)!;
-            vals.push(margin * (1 - config.popularVoteFactor) + shifedMargin * config.popularVoteFactor);
+            vals.push(margin * (1 - config.environmentsConfig!.popularVoteFactor) + shifedMargin * config.environmentsConfig!.popularVoteFactor);
             weights.push(getYearWeightFactor(year, true));
         }
 
@@ -321,17 +336,15 @@ const setStatesEnvironment = (presidentialRace: PresidentialRace, config: Presid
     
                 const margin = (res.dem - res.rep) / totalVotes;
                 const shifedMargin = margin - housePopularVoteMargins.get(year)!;
-                vals.push(margin * (1 - config.popularVoteFactor) + shifedMargin * config.popularVoteFactor);
-                weights.push(getYearWeightFactor(year, false) * config.houseToPresidentialRatio / 2);
+                vals.push(margin * (1 - config.environmentsConfig!.popularVoteFactor) + shifedMargin * config.environmentsConfig!.popularVoteFactor);
+                weights.push(getYearWeightFactor(year, false) * config.environmentsConfig!.houseToPresidentialRatio / 2);
             }
         }
 
         const environment = constructWeightedNormal(vals, weights);
         contest.environment = environment;
 
-        if (stateName == "Wyoming"){
-            console.log(vals + " " + environment.std + " " + weights);
-        }
+        
     }
     
 }

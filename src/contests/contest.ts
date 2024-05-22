@@ -4,6 +4,7 @@
  */
 
 import { Poll } from "../polling/poll";
+import { PollsterPredictionConfig } from "../pollster/pollster";
 import { Normal, addDeviation, constructNormal, randomNormal } from "../utils/normal";
 
 
@@ -34,6 +35,8 @@ export interface Contest {
  * Stuff to customize the prediction of a constest
  */
 export interface ContestPredictionConfig {
+
+    pollstersConfig?: PollsterPredictionConfig;
 
     /** Info about the environment of the contest and how it should be taken into account */
     environment?: ContestPredictionEnvironment;
@@ -77,7 +80,11 @@ export const predictContest = (contest: Contest, config: ContestPredictionConfig
 
 
     ///MEAN AND STANDARD DEVIATION OF DEM ADVANTAGE IN POLLS
-    const pred = constructNormal(contest.polls.map(poll=>poll.generalResult.dem - poll.generalResult.rep));
+    const getUnbiasedPollMargin = (poll: Poll): number =>{
+        const pastBiasFactor = config.pollstersConfig?.pastBiasFactor ?? 0.0;
+        return (poll.generalResult.dem - poll.generalResult.rep) -  poll.pollster.pastBias * pastBiasFactor;
+    }
+    const pred = constructNormal(contest.polls.map(getUnbiasedPollMargin));
     addDeviation(pred, .01);
 
     if ("environment" in config){
