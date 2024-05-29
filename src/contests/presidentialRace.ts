@@ -275,6 +275,8 @@ const setStatesEnvironment = (presidentialRace: PresidentialRace, config: Presid
         var demVotes = 0;
         var otherVotes = 0;
         for (const [stateName, contest] of presidentialRace.contests.entries()){
+
+            if (stateName.includes("1st") || stateName.includes("2nd") || stateName.includes("3rd")){continue;} //TO TOTAL, COUNT ONLY NE AND ME AT LARGE
             repVotes += contest.pastPresidentialResults.get(year)!.rep;
             demVotes += contest.pastPresidentialResults.get(year)!.dem;
             otherVotes += contest.pastPresidentialResults.get(year)!.other;
