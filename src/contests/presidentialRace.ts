@@ -2,13 +2,15 @@
  * The presidential contest
  */
 
-import * as fs from 'fs';
 
 import { Normal, constructNormal, constructWeightedNormal, randomNormal } from "../utils/normal";
 import { STATES } from "../utils/utils";
 import { Contest, ContestPredictionConfig, predictContest } from "./contest";
 import { Result } from '../utils/results';
 import { PollsterPredictionConfig } from '../pollster/pollster';
+
+import pastPresidential from "../../data/past_presidential.json";
+import pastHouse from "../../data/past_house.json";
 
 
 export type PresidentialContestsName = STATES | "Maine 1st" | "Maine 2nd" | "Nebraska 1st" | "Nebraska 2nd" | "Nebraska 3rd" |
@@ -46,18 +48,14 @@ export const loadPresidentialContests = (): Map<PresidentialContestsName, Presid
 
     const map = new Map<PresidentialContestsName, PresidentialContest>();
 
-    ///WE CURRENTLY NEED TO LOAD THE FILE FOR NUMBER OF ELECTORS
-    const file = fs.readFileSync("./data/past_presidential.csv");
-    const data = file.toString("utf-8").split("\r\n");
 
     ///LOAD THE PRESIDENTIAL AND HOUSE DATA
     const presidentialData = loadPastPresidentialData();
     const houseData = loadPastHouseStatewideData();
 
-    for (let i=1; i<data.length; i++){
-        const stuff = data[i].split(",");
-        var name: PresidentialContestsName = stuff[0] as PresidentialContestsName; //TRY CATCH?
-        var electors = parseInt(stuff[2]);
+    for (const data of pastPresidential){
+        var name: PresidentialContestsName = data.State as PresidentialContestsName; //TRY CATCH?
+        var electors = data["Electoral Seats"];
 
         const presidentialContest: PresidentialContest = {
             name: name,
@@ -85,20 +83,15 @@ const loadPastPresidentialData = (): Map<PresidentialContestsName, Map<number, R
 
     const pastResultsByState: Map<PresidentialContestsName, Map<number, Result>> = new Map();
 
-    
-    const file = fs.readFileSync("./data/past_presidential.csv");
-    const data = file.toString("utf-8").split("\r\n");
+    for (const data of pastPresidential){
+        var name: PresidentialContestsName = data.State as PresidentialContestsName; //TRY CATCH?
 
-    for (let i=1; i<data.length; i++){
-        const stuff = data[i].split(",");
-        var name: PresidentialContestsName = stuff[0] as PresidentialContestsName; //TRY CATCH?
-        
         var pastResults: Map<number, Result> = new Map();
+        for (const year of [2016, 2020]){
+            var dem = data[(year + " Dem") as "2016 Dem"];
+            var rep = data[(year + " Rep") as "2016 Dem"];
+            var tot = data[(year + " Tot") as "2016 Dem"];
 
-        for (let j=0; j<2; j++){
-            var dem = parseInt(stuff[7 + j * 3]);
-            var rep = parseInt(stuff[8 + j * 3]);
-            var tot = parseInt(stuff[9 + j * 3]);
 
             var result: Result = {
                 dem: dem,
@@ -106,10 +99,10 @@ const loadPastPresidentialData = (): Map<PresidentialContestsName, Map<number, R
                 other: (tot - rep - dem),
             }
 
-            pastResults.set(2016 + j * 4, result);
+            pastResults.set(year, result);
         }
 
-        pastResultsByState.set(name, pastResults);        
+        pastResultsByState.set(name, pastResults);                    
     }
 
     return pastResultsByState;
@@ -123,18 +116,15 @@ const loadPastHouseStatewideData = (): Map<PresidentialContestsName, Map<number,
 
     const pastResultsByState: Map<PresidentialContestsName, Map<number, Result>> = new Map();
 
-    const file = fs.readFileSync("./data/past_house.csv");
-    const data = file.toString("utf-8").split("\r\n");
 
-    for (let i=1; i<data.length; i++){
-        const stuff = data[i].split(",");
-        var name: PresidentialContestsName = stuff[0] as PresidentialContestsName; //TRY CATCH?
+    for (const data of pastHouse){
+
         var pastResults: Map<number, Result> = new Map();
+        for (const year of [2016, 2018, 2020, 2022]){
+            var dem = data[(year + " Dem") as "2016 Dem"];
+            var rep = data[(year + " Rep") as "2016 Dem"];
+            var tot = data[(year + " Tot") as "2016 Dem"];
 
-        for (let j=0; j<4; j++){
-            var dem = parseInt(stuff[1 + j * 3]);
-            var rep = parseInt(stuff[2 + j * 3]);
-            var tot = parseInt(stuff[3 + j * 3]);
 
             var result: Result = {
                 dem: dem,
@@ -142,10 +132,10 @@ const loadPastHouseStatewideData = (): Map<PresidentialContestsName, Map<number,
                 other: (tot - rep - dem),
             }
 
-            pastResults.set(2016 + j * 2, result);
+            pastResults.set(year, result);
         }
 
-        pastResultsByState.set(name, pastResults); 
+        pastResultsByState.set(data.State as PresidentialContestsName, pastResults);
     }
 
     return pastResultsByState;

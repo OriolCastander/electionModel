@@ -4,9 +4,7 @@
  * Live bias (to implement) is concerned with their current bias against the "pollster mean"
  */
 
-
-import * as fs from 'fs';
-
+import pastPolls from "../../data/past_polls.json";
 
 
 export interface Pollster {
@@ -35,8 +33,7 @@ export const loadPollsters = () : Map<string, Pollster> =>{
 
     const map: Map<string, Pollster> = new Map();
 
-    const file = fs.readFileSync("./data/past_polls.csv");
-    const data = file.toString("utf-8").split("\r\n");
+    
 
     type PossibleContests = "President" | "House" | "Senate";
     const results: {constest: PossibleContests, target: "", rep: number, dem: number}[] = [];
@@ -44,28 +41,27 @@ export const loadPollsters = () : Map<string, Pollster> =>{
     const pollstersErrors: Map<string, number[]> = new Map();
 
     for (let pass of ["results", "polls"]){
-        for (let i=1; i<data.length; i++){
-            const stuff = data[i].split(",");
+        for (const data of pastPolls){
 
     
-            const contest: PossibleContests = stuff[2] as PossibleContests;
-            const target: "" = stuff[3] as "";
-            const dem =  parseFloat(stuff[4]) / 100;
-            const rep = parseFloat(stuff[5]) / 100;
+            const contest: PossibleContests = data.Contest as PossibleContests;
+            const target: "" = ""; //data.Target as "";
+            const dem =  data.Dem / 100;
+            const rep = data.Rep / 100;
             
-            if (pass == "results" && stuff[0] == "RESULT"){
+            if (pass == "results" && data.Pollster == "RESULT"){
                 results.push({constest: contest, target: target, dem: dem, rep: rep});
             }
 
-            else if (pass == "polls" && stuff[0] != "RESULT"){
+            else if (pass == "polls" && data.Pollster != "RESULT"){
                 var validRace = false;
                 for (const result of results){
                     if (result.constest == contest && result.target == target){
                         validRace = true;
                         const bias = (dem - rep) - (result.dem - result.rep);
 
-                        if (pollstersErrors.has(stuff[0])){pollstersErrors.get(stuff[0])!.push(bias);}
-                        else{pollstersErrors.set(stuff[0], [bias]);}
+                        if (pollstersErrors.has(data.Pollster)){pollstersErrors.get(data.Pollster)!.push(bias);}
+                        else{pollstersErrors.set(data.Pollster, [bias]);}
                     }
                 }
 
