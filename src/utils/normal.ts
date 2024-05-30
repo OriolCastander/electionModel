@@ -11,9 +11,14 @@ export interface Normal{
 
 export const constructNormal = (array: number[]): Normal => {
 
-    const mean = array.reduce((acc, val) => acc + val, 0.0) / array.length;
-    const diffsSquared = array.reduce((acc: number[], val) => acc.concat((val - mean) ** 2), [])
-                                .reduce((acc, val)=>acc + val, 0);
+    var subtotal = 0;
+    for (const element of array){subtotal += element;}
+    const mean = subtotal / array.length;
+
+    var diffsSquared = 0;
+    for (const element of array){
+        diffsSquared += (element - mean)**2;
+    }
 
     return {mean: mean, std: Math.sqrt(diffsSquared / array.length)}
 }
@@ -24,14 +29,20 @@ export const constructNormal = (array: number[]): Normal => {
 export const constructWeightedNormal = (array: number[], weights: number[]): Normal =>{
     if (array.length != weights.length){throw new Error("Array length and weights lenght should be equal when constructing normal");}
     
-    const totalWeight = weights.reduce((acc, val) => acc + val, 0.0);
-    const avgWeight = totalWeight / weights.length;
-    const mean = array.reduce((acc, val, index) => { return acc + (val * weights[index] / totalWeight);}, 0.0);
+    var totalWeight = 0.0;
+    for (const element of weights){totalWeight += element;}
 
-    const diffsSquared = array.reduce((acc: number[], val, index) => acc.concat(((val - mean) ** 2) * weights[index] / avgWeight), []);
-    const std = Math.sqrt(diffsSquared.reduce((acc, val) => acc + val, 0.0) / array.length);
+    var mean = 0.0;
+    for (let i=0; i<array.length; i++){
+        mean += array[i] * weights[i] / totalWeight;
+    }
+    
+    var diffsSquared = 0.0;
+    for (let i=0; i<array.length; i++){
+        diffsSquared += (array[i] - mean)**2 * weights[i] / (totalWeight / array.length);
+    }
 
-    return {mean: mean, std: std};
+    return {mean: mean, std: Math.sqrt(diffsSquared / array.length)}
 }
 
 /**
